@@ -56,8 +56,7 @@ public class PicViewer implements ActionListener {
         exifArea = new JTextArea(20, 20);
         exifArea.setEditable(false);
         exifPanel = new JScrollPane(exifArea, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, 
-            JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-        // exifPanel.setAutoscrolls(false);
+            JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
         con.add(ctrlPanel,BorderLayout.SOUTH);
         con.add(imgPanel,BorderLayout.CENTER);
@@ -117,8 +116,13 @@ public class PicViewer implements ActionListener {
             } catch (IOException ex) {
                 System.out.println("File not exists");
             }
-            Image scaledImg = img.getScaledInstance(-1, Math.min(img.getHeight(null), 
-                imgPanel.getHeight()), Image.SCALE_DEFAULT);
+            int scaledWidth = -1, scaledHeight = -1;
+            if ((double) imgPanel.getHeight()/img.getHeight(null) < (double) imgPanel.getWidth()/img.getWidth(null)) {
+                scaledHeight = Math.min(imgPanel.getHeight(),img.getHeight(null));
+            } else {
+                scaledWidth = Math.min(imgPanel.getWidth(),img.getWidth(null));
+            }
+            Image scaledImg = img.getScaledInstance(scaledWidth, scaledHeight, Image.SCALE_SMOOTH);
             imgLabel.setIcon(new ImageIcon(scaledImg));
             displayExif(file);
         }
@@ -190,7 +194,7 @@ public class PicViewer implements ActionListener {
             Metadata metadata = ImageMetadataReader.readMetadata(img);
             Directory directory = metadata.getDirectory(ExifDirectory.class);
             Iterator iter = directory.getTagIterator();
-            String exifText = "EXIF\n";
+            String exifText = "EXIF";
             while (iter.hasNext()) {
                 Tag tag = (Tag) iter.next();
                 exifText += tag.getTagName() + "\t" + tag.getDescription() + "\n";
