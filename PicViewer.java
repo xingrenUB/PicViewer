@@ -5,24 +5,33 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import javax.imageio.ImageIO;
 import java.io.IOException;
+import com.drew.imaging.ImageMetadataReader;
+import com.drew.metadata.Directory;
+import com.drew.metadata.Metadata;
+import com.drew.metadata.Tag;
+import com.drew.metadata.exif.*;
+// import com.drew.imaging.ImageProcessingException;
+import java.util.Iterator;
+import java.util.Date;
 
 public class PicViewer implements ActionListener {
-    private JLabel imgLable;
+    private JLabel imgLabel;
     private JFrame mainFrame;
     private Container con;
     private JButton openBtn, preBtn, nextBtn, refreshBtn, delBtn;
-    private JPanel pane;
-    private JScrollPane imgPanel;
+    private JTextArea exifArea;
+    private JPanel ctrlPanel;
+    private JScrollPane imgPanel, exifPanel;
     private File[] files;
     private File path;
     private int idx = -1, minIdx, maxIdx;
-    private int width = 800, height = 800;
+    private int width = 1600, height = 800;
     
     public PicViewer(File path) {
         mainFrame = new JFrame("PicViewer");
         con = mainFrame.getContentPane();
-        pane = new JPanel();
-        pane.setLayout(new FlowLayout());
+        ctrlPanel = new JPanel();
+        ctrlPanel.setLayout(new FlowLayout());
 
         openBtn = new JButton("Open File");
         preBtn = new JButton("Previous");
@@ -36,16 +45,23 @@ public class PicViewer implements ActionListener {
         delBtn.addActionListener(this);
         refreshBtn.addActionListener(this);
 
-        pane.add(openBtn);
-        pane.add(preBtn);
-        pane.add(nextBtn);
-        pane.add(refreshBtn);
-        pane.add(delBtn);
+        ctrlPanel.add(openBtn);
+        ctrlPanel.add(preBtn);
+        ctrlPanel.add(nextBtn);
+        ctrlPanel.add(refreshBtn);
+        ctrlPanel.add(delBtn);
 
-        imgLable = new JLabel("", null, JLabel.CENTER);
-        imgPanel = new JScrollPane(imgLable);
-        con.add(pane,BorderLayout.SOUTH);
+        imgLabel = new JLabel("", null, JLabel.CENTER);
+        imgPanel = new JScrollPane(imgLabel);
+        exifArea = new JTextArea(20, 20);
+        exifArea.setEditable(false);
+        exifPanel = new JScrollPane(exifArea, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, 
+            JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+        // exifPanel.setAutoscrolls(false);
+
+        con.add(ctrlPanel,BorderLayout.SOUTH);
         con.add(imgPanel,BorderLayout.CENTER);
+        con.add(exifPanel,BorderLayout.EAST);
         mainFrame.setSize(width, height);
         mainFrame.setVisible(true);
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -93,16 +109,18 @@ public class PicViewer implements ActionListener {
 
     public void showImage(File file) {
         if (file.getName().toLowerCase().endsWith(".gif")) {
-            imgLable.setIcon(new ImageIcon(file.getAbsolutePath()));
+            imgLabel.setIcon(new ImageIcon(file.getAbsolutePath()));
         } else {
-            Image image = null;
+            Image img = null;
             try {
-                image = ImageIO.read(file);
+                img = ImageIO.read(file);
             } catch (IOException ex) {
                 System.out.println("File not exists");
             }
-            Image scaledImg = image.getScaledInstance(-1, Math.min(image.getHeight(null), imgPanel.getHeight()), Image.SCALE_DEFAULT);
-            imgLable.setIcon(new ImageIcon(scaledImg));
+            Image scaledImg = img.getScaledInstance(-1, Math.min(img.getHeight(null), 
+                imgPanel.getHeight()), Image.SCALE_DEFAULT);
+            imgLabel.setIcon(new ImageIcon(scaledImg));
+            displayExif(file);
         }
     }
 
@@ -165,6 +183,22 @@ public class PicViewer implements ActionListener {
             this.path = path.getParentFile();
         }
         files = this.path.listFiles();
+    }
+
+    public void displayExif(File img) {
+        try {
+            Metadata metadata = ImageMetadataReader.readMetadata(img);
+            Directory directory = metadata.getDirectory(ExifDirectory.class);
+            Iterator iter = directory.getTagIterator();
+            String exifText = "EXIF\n";
+            while (iter.hasNext()) {
+                Tag tag = (Tag) iter.next();
+                exifText += tag.getTagName() + "\t" + tag.getDescription() + "\n";
+            } 
+            exifArea.setText(exifText);
+        } catch (Exception ex) {
+            System.err.println(ex);
+        }             
     }
 
     public static void main(String[] args) {

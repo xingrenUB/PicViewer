@@ -1,4 +1,4 @@
 Manifest-Version: 1.0
 Created-By: 1.8.0_45 (Oracle Corporation)
 Main-Class: PicViewer
-
+Class-Path: lib/metadata-extractor-2.4.0.jar
